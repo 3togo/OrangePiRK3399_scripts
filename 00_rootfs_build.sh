@@ -12,7 +12,7 @@ if [ -z $ROOT ]; then
 fi
 
 if [ -z $1 ]; then
-	DISTRO="xenial"
+	DISTRO="bionic"
 else
 	DISTRO=$1
 fi
@@ -61,7 +61,7 @@ if [ "$(ls -A -Ilost+found $DEST)" ]; then
 fi
 
 if [ -z "$DISTRO" ]; then
-	DISTRO="xenial"
+	DISTRO="bionic"
 fi
 
 TEMP=$(mktemp -d)
@@ -83,8 +83,8 @@ UNTAR="bsdtar -xpf"
 METHOD="download"
 
 case $DISTRO in
-	xenial)
-		ROOTFS="http://cdimage.ubuntu.com/ubuntu-base/releases/16.04/release/ubuntu-base-16.04.5-base-arm64.tar.gz"
+	bionic)
+		ROOTFS="http://cdimage.ubuntu.com/ubuntu-base/releases/18.04/release/ubuntu-base-18.04.3-base-arm64.tar.gz"
 		;;
 	jessie|stretch)
                 ROOTFS="${DISTRO}-base-arm64.tar.gz"
@@ -109,7 +109,7 @@ deboostrap_rootfs() {
         EXCLUDE="--exclude=init,systemd-sysv"
         EXTR="--keep-debootstrap-dir"
         RELEASE=jessie
-        APT_SERVER=mirrors.ustc.edu.cn
+        APT_SERVER=mirrors.mit.edu
         APT_INCLUDES="--include=apt-transport-https,apt-utils,ca-certificates,debian-archive-keyring,dialog,sudo,systemd,sysvinit-utils,parted,dbus,openssh-server,alsa-utils,rng-tools,locales"
         QEMU_BINARY="/usr/bin/qemu-aarch64-static"
 
@@ -132,13 +132,8 @@ deboostrap_rootfs() {
         # Complete the bootstrapping process
         echo -e "\e[1;31m Start debootstrap second stage.....\e[0m"
 
-        chroot rootfs mount -t proc proc /proc || true
-        chroot rootfs mount -t sysfs sys /sys || true
-        chroot rootfs /debootstrap/debootstrap --second-stage
-        chroot rootfs umount /sys || true
-        chroot rootfs umount /proc || true
 
-        #do_chroot /debootstrap/debootstrap --second-stage
+        do_chroot /debootstrap/debootstrap --second-stage
 
         # keeping things clean as this is copied later again
         rm -f rootfs/usr/bin/qemu-aarch64-static
@@ -180,11 +175,20 @@ chmod a+x "$DEST/usr/sbin/policy-rc.d"
 
 do_chroot() {
 	cmd="$@"
-	chroot "$DEST" mount -t proc proc /proc || true
-	chroot "$DEST" mount -t sysfs sys /sys || true
+	#chroot "$DEST" mount -t proc /proc proc || true
+	#chroot "$DEST" mount -t sysfs sys /sys || true
+	mount -t proc /proc $DEST/proc || true
+	mount -o bind /sys $DEST/sys || true
+	mount -o bind /dev $DEST/dev || true
+	mount -o bind /dev/pts $DEST/dev/pts || true
+
 	chroot "$DEST" $cmd
-	chroot "$DEST" umount /sys
-	chroot "$DEST" umount /proc
+	exit
+	umount -l $DEST/dev/pts || true
+	umount -l $DEST/dev || true
+	umount -l $DEST/proc || true
+	umount -l $DEST/sys || true
+	
 }
 
 add_platform_scripts() {
@@ -275,31 +279,31 @@ add_debian_apt_sources() {
 	local release="$1"
 	local aptsrcfile="$DEST/etc/apt/sources.list"
 	cat > "$aptsrcfile" <<EOF
-deb https://mirrors.ustc.edu.cn/debian/ ${release} main contrib non-free
-#deb-src https://mirrors.ustc.edu.cn/debian/ ${release} main contrib non-free
+deb https://mirrors.mit.edu/debian/ ${release} main contrib non-free
+#deb-src https://mirrors.mit.edu/debian/ ${release} main contrib non-free
 
-deb https://mirrors.ustc.edu.cn/debian/ ${release}-updates main contrib non-free
-#deb-src https://mirrors.ustc.edu.cn/debian/ ${release}-updates main contrib non-free
+deb https://mirrors.mit.edu/debian/ ${release}-updates main contrib non-free
+#deb-src https://mirrors.mit.edu/debian/ ${release}-updates main contrib non-free
 
-deb https://mirrors.ustc.edu.cn/debian/ ${release}-backports main contrib non-free
-#deb-src https://mirrors.ustc.edu.cn/debian/ ${release}-backports main contrib non-free
+deb https://mirrors.mit.edu/debian/ ${release}-backports main contrib non-free
+#deb-src https://mirrors.mit.edu/debian/ ${release}-backports main contrib non-free
 EOF
 }
 
 add_ubuntu_apt_sources() {
 	local release="$1"
 	cat > "$DEST/etc/apt/sources.list" <<EOF
-deb http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial main restricted universe multiverse
-#deb-src https://mirrors.ustc.edu.cn/ubuntu-ports/ xenial main main restricted universe multiverse
-deb http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-updates main restricted universe multiverse
-#deb-src https://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-updates main restricted universe multiverse
-deb http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-backports main restricted universe multiverse
-#deb-src https://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-backports main restricted universe multiverse
-deb http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-security main restricted universe multiverse
-#deb-src https://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-security main restricted universe multiverse
+deb http://mirrors.mit.edu/ubuntu-ports/ bionic main restricted universe multiverse
+#deb-src https://mirrors.mit.edu/ubuntu-ports/ bionic main main restricted universe multiverse
+deb http://mirrors.mit.edu/ubuntu-ports/ bionic-updates main restricted universe multiverse
+#deb-src https://mirrors.mit.edu/ubuntu-ports/ bionic-updates main restricted universe multiverse
+deb http://mirrors.mit.edu/ubuntu-ports/ bionic-backports main restricted universe multiverse
+#deb-src https://mirrors.mit.edu/ubuntu-ports/ bionic-backports main restricted universe multiverse
+deb http://mirrors.mit.edu/ubuntu-ports/ bionic-security main restricted universe multiverse
+#deb-src https://mirrors.mit.edu/ubuntu-ports/ bionic-security main restricted universe multiverse
 
-#deb http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-proposed main restricted universe multiverse
-#deb-src http://mirrors.ustc.edu.cn/ubuntu-ports/ xenial-proposed main restricted universe multiverse
+#deb http://mirrors.mit.edu/ubuntu-ports/ bionic-proposed main restricted universe multiverse
+#deb-src http://mirrors.mit.edu/ubuntu-ports/ bionic-proposed main restricted universe multiverse
 EOF
 }
 
@@ -311,10 +315,10 @@ add_asound_state() {
 # Run stuff in new system.
 case $DISTRO in
 
-	xenial|jessie|stretch)
+	bionic|jessie|stretch)
 		rm "$DEST/etc/resolv.conf"
 		cp /etc/resolv.conf "$DEST/etc/resolv.conf"
-		if [ "$DISTRO" = "xenial" ]; then
+		if [ "$DISTRO" = "bionic" ]; then
 			DEB=ubuntu
 			DEBUSER=orangepi
 			EXTRADEBS="software-properties-common ubuntu-minimal"
@@ -336,13 +340,19 @@ case $DISTRO in
 		cat > "$DEST/second-phase" <<EOF
 #!/bin/sh
 export DEBIAN_FRONTEND=noninteractive
-locale-gen en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+export LANGUAGE=en_US:en
+export LANG=en_US.UTF-8
 apt-get -y update
-apt-get -y install dosfstools curl xz-utils iw rfkill wpasupplicant usbutils openssh-server alsa-utils $EXTRADEBS
+apt-get -y install sudo locales dialog
+locale-gen en_US.UTF-8
+
+apt-get -y install dosfstools curl xz-utils iw rfkill wpasupplicant usbutils openssh-server alsa-utils
+apt-get -y install $EXTRADEBS
 apt-get -y install rsync u-boot-tools vim parted network-manager usbmount git autoconf gcc libtool libsysfs-dev pkg-config libdrm-dev xutils-dev hostapd dnsmasq
 apt-get -y remove --purge ureadahead
 $ADDPPACMD
-apt-get -y update
+#apt-get -y update
 $DISPTOOLCMD
 adduser --gecos $DEBUSER --disabled-login $DEBUSER --uid 1000
 adduser --gecos root --disabled-login root --uid 0
@@ -360,11 +370,12 @@ EOF
 		chmod +x "$DEST/second-phase"
 		do_chroot /second-phase
 
-if [ $TYPE = "1" -a $DISTRO="xenial" ]; then
+if [ $TYPE = "1" -a $DISTRO="bionic" ]; then
                 cat > "$DEST/type-phase" <<EOF
 #!/bin/sh
 apt-get -y install xubuntu-desktop vlc
-apt remove snapd
+apt-get -y remove snapd
+apt-get -y dist-upgrade 
 apt-get -y autoremove
 apt-get clean
 EOF
@@ -383,6 +394,7 @@ EOF
                 do_chroot /type-phase
 fi
 
+		mkdir -p "$DEST/etc/network/interfaces.d/"
 		cat > "$DEST/etc/network/interfaces.d/eth0" <<EOF
 auto eth0
 iface eth0 inet dhcp

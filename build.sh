@@ -146,8 +146,7 @@ EOF
 			10 40 0	--cancel-button Exit --ok-button Retry
 	fi
 done
-
-echo $PASSWD | sudo ls &> /dev/null 2>&1
+echo $PASSWD | sudo -S ls &> /dev/null 2>&1
 
 ## Check cross tools
 if [ ! -d $ROOT/toolchain/gcc-linaro-aarch -o ! -d $ROOT/toolchain/gcc-linaro-aarch/gcc-linaro/arm-linux-gnueabi ]; then
@@ -163,7 +162,7 @@ fi
 ## prepare development tools
 if [ ! -f $ROOT/output/.tmp_toolchain ]; then
 	cd $SCRIPTS
-	sudo ./Prepare_toolchain.sh
+	./Prepare_toolchain.sh
 	touch $ROOT/output/.tmp_toolchain
 	cd -
 fi
@@ -182,8 +181,9 @@ OPTION=$(whiptail --title "OrangePi Build System" \
 
 	#"0"   "Build Release Image" \
 	#"7"   "Build system image" \
+
 if [ $OPTION = "0" -o $OPTION = "0" ]; then
-	sudo echo ""
+	sudo echo "Build Release Image..."	
 	clear
 	Update_check
 	clear
@@ -192,7 +192,7 @@ if [ $OPTION = "0" -o $OPTION = "0" ]; then
 	MENUSTR="Distro Options"
 	OPTION=$(whiptail --title "OrangePi Build System" \
 		--menu "$MENUSTR" 20 60 3 --cancel-button Finish --ok-button Select \
-		"0"   "Ubuntu Xenial" \
+		"0"   "Ubuntu Bioic" \
 		"1"   "Debian Jessie" \
 		3>&1 1>&2 2>&3)
 
@@ -223,7 +223,7 @@ if [ $OPTION = "0" -o $OPTION = "0" ]; then
 	fi
 
 	if [ $OPTION = "0" ]; then
-		TMP_DISTRO="xenial"
+		TMP_DISTRO="bionic"
         elif [ $OPTION = "1" ]; then
                 TMP_DISTRO="jessie"
         fi
@@ -365,3 +365,11 @@ else
 		--msgbox "Pls select correct option" 10 50 0
 	exit 0
 fi
+
+mnts="dev/pts dev proc sys"
+for mmnt in $mnts; do 
+    cmd="sudo umount -l output/rootfs/$mmnt"
+    #echo $cmd
+    $cmd
+done 
+

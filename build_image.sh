@@ -22,13 +22,20 @@ else
 	PLATFORM=$2
 fi
 
-if [ $3 = "1" ]; then
+if [ ! -z $3 ] && [ $3 = "1" ]; then
 	IMAGETYPE="desktop"
 	disk_size="3800"
 else
 	IMAGETYPE="server"
 	disk_size="1200"
 fi
+
+if [ -z $4 ]; then
+	VAR=0
+else
+	VAR=$4
+fi
+
 
 
 BUILD="$ROOT/external"
@@ -38,7 +45,6 @@ VER="v1.0"
 IMAGENAME="OrangePi_${PLATFORM}_${DISTRO}_${IMAGETYPE}_${VER}.img"
 IMAGE="$OUTPUT/images/$IMAGENAME"
 ROOTFS="$OUTPUT/rootfs"
-VAR=$4
 PATH=$PATH:$TOOLPATH
 source $ROOT/scripts/partitions.sh
 
@@ -86,12 +92,22 @@ dd if=${OUTPUT}/u-boot/trust.img of=${IMAGE} seek=${ATF_START} conv=notrunc
 
 # Create additional ext4 file system for rootfs
 rootfs_size=$((disk_size-128))  # $disk_size - $ROOTFS_START*512 / 1024 / 1024
+echo "____________________________________"
+echo "rootfs_size=$rootfs_size"
+
 dd if=/dev/zero bs=1M count=$rootfs_size of=${IMAGE}2
+echo "____________________________________"
+echo "starting mkfs.ext4"
 mkfs.ext4 -F -b 4096 -E stride=2,stripe-width=1024 -L rootfs ${IMAGE}2
 
 if [ ! -d /media/tmp ]; then
     mkdir -p /media/tmp
 fi
+echo "____________________________________"
+echo "mount img2"
+echo "ROOT=$ROOT"
+echo "OUTPUT=$OUTPUT"
+echo "VAR=$VAR"
 
 mount -t ext4 ${IMAGE}2 /media/tmp
 

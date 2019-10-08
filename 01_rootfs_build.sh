@@ -10,7 +10,7 @@ if [ -z $ROOT ]; then
 fi
 
 if [ -z $1 ]; then
-	DISTRO="xenial"
+	DISTRO="bionic"
 else
 	DISTRO=$1
 fi
